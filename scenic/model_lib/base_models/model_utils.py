@@ -525,7 +525,45 @@ def weighted_box_l1_loss(
     return abs_diff
   elif reduction == 'mean':
     return abs_diff.mean()
+  else:
+    raise ValueError(f'Unknown reduction: {reduction}')
 
+
+def binary_cross_entropy(x: jnp.ndarray, y: jnp.ndarray) -> jnp.ndarray:
+  eps = 1e-7
+  return -(y * jnp.log(x + eps) + (1. - y) * jnp.log(1. - x + eps))
+
+
+def weighted_binary_cross_entropy_loss(
+    pred: jnp.ndarray,
+    tgt: jnp.ndarray,
+    weights: Optional[jnp.ndarray] = None,
+    reduction: Optional[str] = None,
+) -> jnp.ndarray:
+  """A binary cross entropy between the pred and tgt.
+
+  Args:
+    pred: A tensor with the same shape as tgt. Tensor values should be
+      in range (0, 1).
+    tgt: A tensor with the same shape as pred. Tensor values should be
+      in range [0, 1].
+    weights: Weights to apply to the loss.
+    reduction: Type of reduction, which is from [None, 'mean'].
+
+  Returns:
+    The binary cross entropy between the pred and tgt, scaled by the
+    weights and reduced using the provided reduction.
+  """
+  cross_entropy = binary_cross_entropy(pred, tgt)
+
+  if weights is not None:
+    cross_entropy = apply_weights(cross_entropy, weights)
+  if not reduction:
+    return cross_entropy
+  elif reduction == 'mean':
+    return cross_entropy.mean()
+  else:
+    raise ValueError(f'Unknown reduction: {reduction}')
 
 ############################## Regression Loss #################################
 
